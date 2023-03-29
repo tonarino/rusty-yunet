@@ -1,9 +1,8 @@
 #![warn(clippy::all, clippy::clone_on_ref_ptr, clippy::mod_module_files)]
 
 use image::{buffer::ConvertBuffer, open, Bgr, ImageBuffer};
-use log::debug;
 use serde::Serialize;
-use std::{num::TryFromIntError, path::Path};
+use std::path::Path;
 use thiserror::Error;
 use tonari_math::Rect;
 
@@ -44,6 +43,9 @@ pub enum YuNetError {
 
 /// NOTE: "right" and "left" are defined in the natural face sense;
 /// a person's right eye is seen on the left side of the screen.
+///
+/// Note that landmarks may occur outside of screen coordinates, as
+/// YuNet can extrapolate their position from what's actually visible.
 #[derive(Debug, Clone, Serialize)]
 pub struct FaceLandmarks<T> {
     pub right_eye: (T, T),
@@ -53,15 +55,15 @@ pub struct FaceLandmarks<T> {
     pub mouth_left: (T, T),
 }
 
-impl FaceLandmarks<u16> {
-    fn from_yunet_landmark_array(landmarks: &[i32; 10]) -> Result<Self, TryFromIntError> {
-        Ok(Self {
-            right_eye: (landmarks[0].try_into()?, landmarks[1].try_into()?),
-            left_eye: (landmarks[2].try_into()?, landmarks[3].try_into()?),
-            nose: (landmarks[4].try_into()?, landmarks[5].try_into()?),
-            mouth_right: (landmarks[6].try_into()?, landmarks[7].try_into()?),
-            mouth_left: (landmarks[8].try_into()?, landmarks[9].try_into()?),
-        })
+impl FaceLandmarks<i32> {
+    fn from_yunet_landmark_array(landmarks: &[i32; 10]) -> Self {
+        Self {
+            right_eye: (landmarks[0], landmarks[1]),
+            left_eye: (landmarks[2], landmarks[3]),
+            nose: (landmarks[4], landmarks[5]),
+            mouth_right: (landmarks[6], landmarks[7]),
+            mouth_left: (landmarks[8], landmarks[9]),
+        }
     }
 }
 
@@ -69,12 +71,13 @@ impl FaceLandmarks<u16> {
 pub struct Face {
     /// How confident (0..1) YuNet is that the rectangle represents a valid face.
     confidence: f32,
-    /// Location of the face on absolute pixel coordinates.
-    rectangle: Rect<u16>,
+    /// Location of the face on absolute pixel coordinates. This may fall outside
+    /// of screen coordinates.
+    rectangle: Rect<i32>,
     /// The resolution of the image in which this face was detected (width, height).
     detection_dimensions: (u16, u16),
     /// Coordinates of five face landmarks.
-    landmarks: FaceLandmarks<u16>,
+    landmarks: FaceLandmarks<i32>,
 }
 
 impl Face {
@@ -83,18 +86,13 @@ impl Face {
     fn from_yunet_bridge_face(
         face_rect: &ffi::BridgeFace,
         detection_dimensions: (u16, u16),
-    ) -> Result<Self, TryFromIntError> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             confidence: face_rect.score,
-            rectangle: Rect::with_size(
-                face_rect.x.try_into()?,
-                face_rect.y.try_into()?,
-                face_rect.w.try_into()?,
-                face_rect.h.try_into()?,
-            ),
-            landmarks: FaceLandmarks::from_yunet_landmark_array(&face_rect.lm)?,
+            rectangle: Rect::with_size(face_rect.x, face_rect.y, face_rect.w, face_rect.h),
+            landmarks: FaceLandmarks::from_yunet_landmark_array(&face_rect.lm),
             detection_dimensions,
-        })
+        }
     }
 
     /// How confident (0..1) YuNet is that the rectangle is a face.
@@ -103,7 +101,7 @@ impl Face {
     }
 
     /// Face rectangle in absolute pixel coordinates.
-    pub fn rectangle(&self) -> Rect<u16> {
+    pub fn rectangle(&self) -> Rect<i32> {
         self.rectangle
     }
 
@@ -118,7 +116,7 @@ impl Face {
     }
 
     /// Coordinates of five face landmarks.
-    pub fn landmarks(&self) -> &FaceLandmarks<u16> {
+    pub fn landmarks(&self) -> &FaceLandmarks<i32> {
         &self.landmarks
     }
 
@@ -163,16 +161,7 @@ pub fn detect_faces<T: ConvertBuffer<ImageBuffer<Bgr<u8>, Vec<u8>>>>(
             3 * width as i32,
         )
     };
-    Ok(faces
-        .into_iter()
-        .filter_map(|f| match Face::from_yunet_bridge_face(&f, (width, height)) {
-            Ok(face) => Some(face),
-            Err(e) => {
-                debug!("Yunet detected an invalid face: {f:?}: {e}. Discarding it.");
-                None
-            },
-        })
-        .collect())
+    Ok(faces.into_iter().map(|f| Face::from_yunet_bridge_face(&f, (width, height))).collect())
 }
 
 pub fn detect_faces_from_file(filename: impl AsRef<Path>) -> Result<Vec<Face>, YuNetError> {
