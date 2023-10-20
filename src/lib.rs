@@ -1,4 +1,4 @@
-#![warn(clippy::all, clippy::clone_on_ref_ptr, clippy::mod_module_files)]
+#![warn(clippy::clone_on_ref_ptr, clippy::mod_module_files, clippy::todo)]
 
 use image::{buffer::ConvertBuffer, open, Bgr, ImageBuffer};
 use serde::Serialize;
