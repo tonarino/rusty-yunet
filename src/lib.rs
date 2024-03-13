@@ -105,6 +105,12 @@ impl Face {
         self.rectangle
     }
 
+    /// The minimum of normalized width and height.
+    pub fn size(&self) -> f32 {
+        let rect = self.normalized_rectangle();
+        rect.width().min(rect.height())
+    }
+
     /// Face rectangle in normalized 0..1 coordinates.
     pub fn normalized_rectangle(&self) -> Rect<f32> {
         Rect::with_size(
