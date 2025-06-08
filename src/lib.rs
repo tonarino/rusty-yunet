@@ -202,4 +202,15 @@ mod tests {
         // Detecting two faces with this test at this resolution can be considered a good result.
         assert_eq!(2, detect_faces_from_file("sample.jpg").unwrap().len());
     }
+
+    #[test]
+    fn rect_with_size_works() {
+        let rect1 = Rect::with_size(1_i32, 2_i32, 3_i32, 4_i32);
+        let rect2 = Rect::<i32> {left: 1, top: 2, width: 3, height: 4};
+
+        assert_eq!( rect1.left,   rect2.left   );
+        assert_eq!( rect1.top,    rect2.top    );
+        assert_eq!( rect1.width,  rect2.width  );
+        assert_eq!( rect1.height, rect2.height );
+    }
 }
