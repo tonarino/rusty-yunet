@@ -1,6 +1,6 @@
 [package]
 name = "rusty-yunet"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
@@ -9,7 +9,6 @@ image = "0.23"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1.0"
-tonari-math = { path = "../tonari-math" }
 
 [build-dependencies]
 cxx-build = "1.0"
