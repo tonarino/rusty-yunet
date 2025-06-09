@@ -42,9 +42,9 @@ pub enum YuNetError {
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Rect<T> {
-    pub left:   T,
-    pub top:    T,
-    pub width:  T,
+    pub left: T,
+    pub top: T,
+    pub width: T,
     pub height: T,
 }
 
@@ -127,9 +127,9 @@ impl Face {
     /// Face rectangle in normalized 0..1 coordinates.
     pub fn normalized_rectangle(&self) -> Rect<f32> {
         Rect::with_size(
-            self.rectangle.left   as f32 / self.detection_dimensions.0 as f32,
-            self.rectangle.top    as f32 / self.detection_dimensions.1 as f32,
-            self.rectangle.width  as f32 / self.detection_dimensions.0 as f32,
+            self.rectangle.left as f32 / self.detection_dimensions.0 as f32,
+            self.rectangle.top as f32 / self.detection_dimensions.1 as f32,
+            self.rectangle.width as f32 / self.detection_dimensions.0 as f32,
             self.rectangle.height as f32 / self.detection_dimensions.1 as f32,
         )
     }
@@ -206,11 +206,11 @@ mod tests {
     #[test]
     fn rect_with_size_works() {
         let rect1 = Rect::with_size(1_i32, 2_i32, 3_i32, 4_i32);
-        let rect2 = Rect::<i32> {left: 1, top: 2, width: 3, height: 4};
+        let rect2 = Rect::<i32> { left: 1, top: 2, width: 3, height: 4 };
 
-        assert_eq!( rect1.left,   rect2.left   );
-        assert_eq!( rect1.top,    rect2.top    );
-        assert_eq!( rect1.width,  rect2.width  );
-        assert_eq!( rect1.height, rect2.height );
+        assert_eq!(rect1.left, rect2.left);
+        assert_eq!(rect1.top, rect2.top);
+        assert_eq!(rect1.width, rect2.width);
+        assert_eq!(rect1.height, rect2.height);
     }
 }
