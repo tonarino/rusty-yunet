@@ -4,7 +4,6 @@ use image::{buffer::ConvertBuffer, open, Bgr, ImageBuffer};
 use serde::Serialize;
 use std::path::Path;
 use thiserror::Error;
-use tonari_math::Rect;
 
 #[cxx::bridge]
 mod ffi {
@@ -39,6 +38,20 @@ pub enum YuNetError {
     ImageError(#[from] image::ImageError),
     #[error("Face detection failed")]
     FaceDetectionFailed,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct Rect<T> {
+    pub left:   T,
+    pub top:    T,
+    pub width:  T,
+    pub height: T,
+}
+
+impl<T> Rect<T> {
+    fn with_size(left: T, top: T, width: T, height: T) -> Self {
+        Self { left, top, width, height }
+    }
 }
 
 /// NOTE: "right" and "left" are defined in the natural face sense;
@@ -108,16 +121,16 @@ impl Face {
     /// The minimum of normalized width and height.
     pub fn size(&self) -> f32 {
         let rect = self.normalized_rectangle();
-        rect.width().min(rect.height())
+        rect.width.min(rect.height)
     }
 
     /// Face rectangle in normalized 0..1 coordinates.
     pub fn normalized_rectangle(&self) -> Rect<f32> {
         Rect::with_size(
-            self.rectangle.left() as f32 / self.detection_dimensions.0 as f32,
-            self.rectangle.top() as f32 / self.detection_dimensions.1 as f32,
-            self.rectangle.width() as f32 / self.detection_dimensions.0 as f32,
-            self.rectangle.height() as f32 / self.detection_dimensions.1 as f32,
+            self.rectangle.left   as f32 / self.detection_dimensions.0 as f32,
+            self.rectangle.top    as f32 / self.detection_dimensions.1 as f32,
+            self.rectangle.width  as f32 / self.detection_dimensions.0 as f32,
+            self.rectangle.height as f32 / self.detection_dimensions.1 as f32,
         )
     }
 
@@ -188,5 +201,16 @@ mod tests {
         //
         // Detecting two faces with this test at this resolution can be considered a good result.
         assert_eq!(2, detect_faces_from_file("sample.jpg").unwrap().len());
+    }
+
+    #[test]
+    fn rect_with_size_works() {
+        let rect1 = Rect::with_size(1_i32, 2_i32, 3_i32, 4_i32);
+        let rect2 = Rect::<i32> {left: 1, top: 2, width: 3, height: 4};
+
+        assert_eq!( rect1.left,   rect2.left   );
+        assert_eq!( rect1.top,    rect2.top    );
+        assert_eq!( rect1.width,  rect2.width  );
+        assert_eq!( rect1.height, rect2.height );
     }
 }
